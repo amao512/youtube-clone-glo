@@ -1,13 +1,14 @@
-'use sctrict';
+'use strict';
 document.addEventListener('DOMContentLoaded', () => {
 
-    // Эрканная Клавиатура
+    // Screen keyboard
     {
         const keyboardButton = document.querySelector('.search-form__keyboard');
         const keyboard = document.querySelector('.keyboard');
         const closeKeyboard = document.getElementById('close-keyboard');
         const searchInput = document.querySelector('.search-form__input');
-
+        const backspace = document.getElementById('keyboard-backspace');
+        const space = document.getElementById('keyboard-space');
 
         const toggleKeyboard = () => {
             keyboard.style.top = keyboard.style.top ? '' : '50%';
@@ -41,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const typing = event => {
             const target = event.target;
 
-             if(target.tagName.toLowerCase() === 'button'){
+            if(target.tagName.toLowerCase() === 'button'){
 
                 const buttons = [...keyboard.querySelectorAll('button')]
                 .filter(elem => elem.style.visibility !== 'hidden');
@@ -57,7 +58,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     searchInput.value += contentButton;
                 }
             }
-        }
+            // backspace
+            // space
+        };
 
         keyboardButton.addEventListener('click', toggleKeyboard);
         closeKeyboard.addEventListener('click', toggleKeyboard);
@@ -66,6 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Menu 
     {
+
         const burger = document.querySelector('.spinner');
         const sidebarMenu = document.querySelector('.sidebarMenu');
 
@@ -73,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
             burger.classList.toggle('active');
             sidebarMenu.classList.toggle('rollUp');
         })
-        // При нажатии на ссылки
+
         sidebarMenu.addEventListener('click', e => {
             let target = e.target;
             target = target.closest('a[href="#"]');
@@ -91,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
         })
     }
 
-    // Modal Window
+
     const youtuber = () => {
 
         const youtuberItems = document.querySelectorAll('[data-youtuber]');
@@ -106,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let wh = document.documentElement.clientHeight;
 
             for(let i = 0; i < qw.length; i++){
-                if(ww > qw[i]){
+                if (ww > qw[i]){
                     youtuberContainer.querySelector('iframe').style.cssText = `
                         width: ${qw[i]}px;
                         height: ${qh[i]}px;
@@ -118,9 +122,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         left: ${(ww - qw[i]) / 2}px;
                     `;
                     break;
-                }
-            }
-        }
+                };
+            };
+        };
 
         youtuberItems.forEach(elem => {
             elem.addEventListener('click', () => {
@@ -134,7 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.addEventListener('resize', sizeVideo);
 
                 sizeVideo();
-            })
+            });
         })
 
         youtuberModal.addEventListener('click', () => {
@@ -145,23 +149,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
     }
-
+    // Modal Window
     {
         document.body.insertAdjacentHTML('beforeend', `
             <div class="youTuberModal">
                 <div id="youtuberClose">&#215;</div>
                 <div id="youtuberContainer"></div>
-            </div> 
-            `);
+            </div> `);
         youtuber();
     }
 
-    // Youtube 
+    
+
+    // API
     {
         const API_KEY = api_key;
         const CLIENT_ID = client_id;
-
-        // Авторизация
+        // авторизация
         {
             const buttonAuth = document.getElementById('authorize');
             const authBlock = document.querySelector('.auth');
@@ -172,9 +176,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const authenticate = () => gapi.auth2.getAuthInstance()
                 .signIn({scope: "https://www.googleapis.com/auth/youtube.readonly"})
-                .then(() => console.log('Sign-in successful'))
+                .then(() => console.log("Sign-in successful"))
                 .catch(errorAuth);
-
+            
             const loadClient = () => {
                 gapi.client.setApiKey(API_KEY);
                 return gapi.client.load("https://www.googleapis.com/discovery/v1/apis/youtube/v3/rest")
@@ -187,20 +191,71 @@ document.addEventListener('DOMContentLoaded', () => {
             buttonAuth.addEventListener('click', () => {
                 authenticate().then(loadClient);
             });
+
         }
 
         // request
         {
+            const main = document.getElementById('yt_main');
             const gloTube = document.querySelector('.logo-academy');
             const trends = document.getElementById('yt_trend');
-            const like = document.getElementById('like');
+            const like = document.getElementById('yt_like');
+            const subscriptions = document.getElementById('yt_subscriptions');
+            const searchForm = document.querySelector('.search-form');
 
             const request = options => gapi.client.youtube[options.method]
                 .list(options)
                 .then(response => response.result.items)
-                .then(render)
-                .then(youtuber)
-                .catch(err => console.err('Во время запроса произошло ошибка: ' + err))
+                .then(data => options.method === "subscriptions" ? renderSub(data) : render(data))
+                .catch(err => console.error('Во время запроса произошло ошибка: ' + err))
+
+            
+            const renderSub = data => {
+                console.log(data)
+                const ytWrapper = document.getElementById('yt-wrapper');
+                ytWrapper.textContent = '';
+                data.forEach(item => {
+                    try {
+                        const {
+                            snippet:{
+                                resourceId:{
+                                    channelId
+                                }, 
+                                description, 
+                                title, 
+                                thumbnails:{
+                                    high:{
+                                        url
+                                    }
+                                }
+                            }
+                        } = item;
+                        ytWrapper.innerHTML += `
+                            <div class="yt" data-youtuber="${channelId}">
+                                <div class="yt-thumbnail" style="--aspect-ratio:16/9;">
+                                <img src="${url}" alt="thumbnail" class="yt-thumbnail__img">
+                                </div>
+                                <div class="yt-title">${title}</div>
+                                <div class="yt-channel">${description}</div>
+                            </div>
+                        `;
+                    } catch (err) {
+                        console.error(err);
+                    }
+                });
+
+                ytWrapper.querySelectorAll('.yt').forEach(item => {
+                    item.addEventListener('click', () => {
+                        request({
+                            method: 'search',
+                            part: 'snippet',
+                            channelId: item.dataset.youtuber,
+                            order: 'date',
+                            maxResults: 10,
+                        })
+                    })
+                });
+            };
 
             const render = data => {
                 console.log(data)
@@ -211,13 +266,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         const {
                             id, id:{
                                 videoId
-                            },
+                            }, 
                             snippet:{
-                                channelTitle,
+                                channelTitle, 
                                 title,
-                                resourceId:{
+                                resourceId: {
                                     videoId: likedVideoId
-                                } = {},
+                                } = {}, 
                                 thumbnails:{
                                     high:{
                                         url
@@ -227,18 +282,31 @@ document.addEventListener('DOMContentLoaded', () => {
                         } = item;
                         ytWrapper.innerHTML += `
                             <div class="yt" data-youtuber="${likedVideoId || videoId || id}">
-                              <div class="yt-thumbnail" style="--aspect-ratio:16/9;">
+                                <div class="yt-thumbnail" style="--aspect-ratio:16/9;">
                                 <img src="${url}" alt="thumbnail" class="yt-thumbnail__img">
-                              </div>
-                              <div class="yt-title">${title}</div>
-                              <div class="yt-channel">${channelTitle}</div>
+                                </div>
+                                <div class="yt-title">${title}</div>
+                                <div class="yt-channel">${channelTitle}</div>
                             </div>
                         `;
                     } catch (err) {
                         console.error(err);
                     }
-                })
+                });
+                youtuber();
             };
+
+            // Trends of USA
+            main.addEventListener('click', () => {
+                request({
+                    method: 'videos',
+                    part: 'snippet',
+                    chart: 'mostPopular',
+                    order: 'date',
+                    maxResults: 10,
+                    regionCode: 'US',
+                })
+            });
 
             gloTube.addEventListener('click', () => {
                 request({
@@ -266,9 +334,38 @@ document.addEventListener('DOMContentLoaded', () => {
                     method: 'playlistItems',
                     part: 'snippet',
                     playlistId: 'LLQmjILeRERPEibf-vPpypjg',
+                    maxResults: 6,
+                })
+            });
+
+            subscriptions.addEventListener('click', () => {
+                request({
+                    method: 'subscriptions',
+                    part: 'snippet',
+                    mine: true,
                     maxResults: 10,
                 })
             });
+
+            searchForm.addEventListener('submit', event => {
+                event.preventDefault();
+                const valueInput = searchForm.elements[0].value
+
+                if(!valueInput) {
+                    searchForm.style.border = '1px solid red' 
+                    return;
+                }
+                searchForm.style.border = '';
+                
+                request({
+                    method: 'search',
+                    part: 'snippet',
+                    order: 'relevance',
+                    maxResults: 10,
+                    q: valueInput,
+                })
+                searchForm.elements[0].value = '';
+            })
         }
     }
-})
+});
